@@ -1,0 +1,30 @@
+{
+	"name" : "AdBlocker",
+	"version" : "0.1",
+	"manifest_version" : 2,
+	"description" : "Block ads from various domains",
+	"browser_action" : {
+		"default_icon" : "enabled.png",
+		"default_title" : "New AdBlocker12345", // optional
+		"default_popup" : "popup.html"
+	},
+	"background" : {
+		"scripts" : ["Util.js","background.js","content.js","popup.js"]
+	},
+
+	"permissions": [
+        "activeTab",
+        "webRequest",
+        "webRequestBlocking",
+        "storage",
+        "tabs",
+        "privacy",
+        "webNavigation",
+        "contextMenus",
+        "management",
+        "cookies",
+        "http://*/*",
+        "https://*/*"
+    ],
+  "web_accessible_resources":[ "popup.html" ]
+}
