@@ -130,14 +130,15 @@ var getLocation = function(href) {
 };
 
 function onBeforeRequestHandler(details) {
-    // if(tabDataStore[details.tabId].url !== undefined && isWhiteListed(tabDataStore[details.tabId].url)  ){
-    //     return{cancel:false};
-    // }
-
     // check if blocking is enabled or not
     if(!blockingEnabled || tabDataStore[details.tabId] === undefined)
         return{cancel:false};
     var blocked =false;                               // flag for deciding if blocked or not
+
+    if(tabDataStore[details.tabId].url !== undefined && isWhiteListed(tabDataStore[details.tabId].url)  ){
+        console.log("return");
+        return{cancel:false};
+    }
 
     var blockedAdResult = checkForBlocking(details.url, adFilters, true);
     var blockedTrackerResult = checkForBlocking(details.url , privacyFilters, false);
@@ -162,20 +163,6 @@ function onBeforeRequestHandler(details) {
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function tabdata(details){
-
-    console.log("complete");
-    if(details.frameId==0){
-        console.log("inside");
-        tabDataStore[details.tabId] = {
-            url : details.url,
-            adarray : [],
-            privacyArray : [],
-            total : 0
-        };
-    }
-}
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Create data store
 // Create listeners
 chrome.tabs.onCreated.addListener(function (tab) {
@@ -187,7 +174,19 @@ chrome.tabs.onCreated.addListener(function (tab) {
     };
 });
 
-chrome.webNavigation.onBeforeNavigate.addListener(tabdata);
+chrome.webNavigation.onBeforeNavigate.addListener(function (details){
+    // console.log("complete");
+
+    if(details.frameId==0){
+        // console.log("inside");
+        tabDataStore[details.tabId] = {
+            url : details.url,
+            adarray : [],
+            privacyArray : [],
+            total : 0
+        };
+    }
+});
 
 chrome.tabs.onRemoved.addListener(function (tabId) {
     delete tabDataStore[tabId];
@@ -195,6 +194,9 @@ chrome.tabs.onRemoved.addListener(function (tabId) {
 
 chrome.tabs.onUpdated.addListener(CSSListener);
 chrome.webRequest.onBeforeRequest.addListener(onBeforeRequestHandler, {urls: ["http://*/*", "https://*/*"]}, ["blocking"]);
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 // Enable the adblocker
 function enable(icon = true) {
@@ -233,7 +235,7 @@ function getStatus(){
 // For passing the list of css filters to content script
 
 function CSSListener(tabId, changeInfo, tab){
-    if(blockingEnabled){
+    if(blockingEnabled && !isWhiteListed(tab.url)){
         chrome.tabs.sendRequest(tabId , {
             'action' : 'selectordata',
             'data' : adFilters.cssFilters
@@ -290,7 +292,6 @@ function isWhiteListed(url  ){
     var url = url.replace(/#.*$/, '');
 
     url = getLocation(url).hostname ;
-    console.log(url);
     var temp1 = localStorage.getItem("whiteListObject");
     if(temp1 !== "" && temp1 !== null){
         whitelistObject = JSON.parse(temp1);
