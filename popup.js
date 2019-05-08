@@ -5,22 +5,44 @@ var address1 = [];
 var adress2 = [];
 var current ;
 var isPageWhiteListed ;
+var newinfo;
 
 var BG = chrome.extension.getBackgroundPage();
-//
-// var intialBlocking = BG.getStatus();
-// if(!intialBlocking){
-// 	document.getElementById("btnListen").innerHTML = "UnPause";
-// }
-// BG.getCurrenTabInfo(function(info){
-	// tab = info.tab;
-	// isPageWhiteListed = BG.isWhiteListed(tab.url);
+
+BG.getCurrentTabInfo(function(info){
+	newinfo = info;
+	tab = info.tab;
+	BG.console.log("Here");
+	// tab:tab,
+	// 	total_blocked:total_blocked,
+	// 	tab_ad_array : tab_ad_array,
+	// 	tab_privacy_array : tab_privacy_array,
+	// 	secure_url : secure_url,
+	// 	cookiesArray : cookiesArray,
+	// 	whitelisted : isWhiteListed(tab.url)
+
+	// isPageWhiteListed = info.whitelisted;
+
+	var intialBlocking = BG.getStatus();
+	BG.console.log("intialBlocking     "+intialBlocking);
+	if(intialBlocking !== true)
+	document.getElementById("btnListen").innerHTML = "UnPause";
 	//
-	// if(isPageWhiteListed){
+	// BG.console.log(info.blockingStatus);
+	//  if(info.blockingStatus){
+	// 	document.getElementById("btnListen").innerHTML = "Pause";
+	// 	// console.log("pause");
+	//  } else {
+	// 	 document.getElementById("btnListen").innerHTML = "unPause";
+	// 	 // console.log("UNPause");
+	//
+	//  }
+
+	//  if(isPageWhiteListed){
 	// 	document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
-	// }
+	//  }
 
-
+	//
 	// var page_count = info.tab_blocked || "0";
 	// tempAddress = info.tab_ad_array;
 	// address2 = info.harmful_urls;
@@ -49,67 +71,60 @@ var BG = chrome.extension.getBackgroundPage();
 	// 		address1.push(i);
 	// 	}
 	// }
-	//
-	//
-	// if(info.tab_blocked == undefined || info.tab_blocked == 0){
-	// 	document.getElementById("current_page_counter").innerHTML = "0";
-	// }
-	// else{
-	// 	document.getElementById("current_page_counter").innerHTML = info.tab_blocked || "0";
-	// }
-	// if(info.total_blocked == undefined || info.total_blocked == 0){
-	// 	document.getElementById("all_page_count").innerHTML = info.total_blocked;
-	// }
-	// else{
-	// 	document.getElementById("all_page_count").innerHTML = info.total_blocked;
-	//}
+});
 
 
-// });
-//
-//
-// document.addEventListener('DOMContentLoaded',function(){
-// 	document.getElementById("openNew").addEventListener("click",opentab);
-// 	document.getElementById("WhitelistThis").addEventListener("click",function(){
-//
-// 		var isWhite = BG.isWhiteListed(tab.url);
-// 		//BG.console.log("isWhite : "+isWhite);
-// 		if(isWhite){
-// 			//
-// 		document.getElementById("WhitelistThis").innerHTML = "Whitelist Site";
-// 			BG.removeWhiteList(tab.url);
-// 			chrome.tabs.reload();
-// 		}
-// 		else{
-// 		document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
-// 			BG.addWhiteList(tab.url);
-// 			BG.console.log("WhiteList URL "+tab.url);
-// 			chrome.tabs.reload();
-// 		}
-// 		window.close()
-// 		//refreshPopup();
-//
-// 	});
+document.addEventListener('DOMContentLoaded',function(){
+	document.getElementById("openNew").addEventListener("click",opentab);
+	document.getElementById("WhitelistThis").addEventListener("click",function() {
+
+		// BG.console.log(newinfo);
+		var isWhite = BG.isWhiteListed(tab.url);
+		//BG.console.log("isWhite : "+isWhite);
+		if(isWhite){
+			//
+		document.getElementById("WhitelistThis").innerHTML = "Whitelist Site";
+			BG.removeWhiteList(tab.url);
+			chrome.tabs.reload();
+		}
+		else{
+		document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
+			BG.addWhiteList(tab.url);
+			BG.console.log("WhiteList URL "+tab.url);
+			chrome.tabs.reload();
+		}
+		window.close()
+		refreshPopup();
+	});
+
+	});
 
 
 	document.getElementById("btnListen").addEventListener("click",function(){
 
 		elem = document.getElementById("btnListen");
-		BG.console.log(elem.value);
+		// BG.console.log(elem.value);
 		var checkBlocking = BG.getStatus();
+		// BG.console.log(checkBlocking);
 		if(checkBlocking){
+			// BG.console.log("pause start");
+
 			BG.disable();
 			document.getElementById("btnListen").innerHTML = "UnPause";
+			// BG.console.log("pause complete");
 			chrome.tabs.reload();
 
 		}
 		else{
+			// BG.console.log("unpause start");
+
 			BG.enable();
 			document.getElementById("btnListen").innerHTML = "Pause";
+			// BG.console.log("unpause complete");
 			chrome.tabs.reload();
 
 		}
-		window.close();
+		 // window.close();
 		//refreshPopup();
 	});
 
