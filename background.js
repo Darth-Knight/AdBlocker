@@ -88,9 +88,6 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
     for(var i = 0 ; filters.generalFilters!== undefined && i < filters.generalFilters.length ; i++){
         var temp = filters.generalFilters[i];
         if(urlDomain.indexOf(temp) > -1){
-            if(thirdPartytracker)              console.log("Adblocker      "+urlDomain +"      "+ temp);
-            else                          console.log("privacyblocker   "+urlDomain +"      "+ temp);
-
             return temp;
         }
     }
@@ -98,8 +95,6 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
     for(var i = 0 ;filters.domainFilters !== undefined && i < filters.domainFilters.length ; i++){
         var temp = filters.domainFilters[i];
         if(urlDomain.indexOf(temp) > -1){
-            if(thirdPartytracker)              console.log("Adblocker      "+urlDomain +"      "+ temp);
-            else                          console.log("privacyblocker   "+urlDomain +"      "+ temp);
             return temp;
         }
     }
@@ -109,12 +104,10 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
         var temp = filters.thirdPartyFilters[i];
         if(thirdPartytracker){
             if(urlDomain.indexOf(temp) > -1 ){
-                console.log("Adblocker      "+urlDomain +"      "+ temp);
                 return temp;
             }
         }else{
             if(urlDomain.indexOf(temp) > -1 && getLocation(urlDomain).hostname == temp){
-                console.log("privacyblocker   "+urlDomain +"      "+ temp);
                 return temp;
             }
         }
@@ -131,7 +124,7 @@ var getLocation = function(href) {
 
 function onBeforeRequestHandler(details) {
     // check if blocking is enabled or not
-    if(!blockingEnabled || tabDataStore[details.tabId] === undefined)
+    if(!blockingEnabled || tabDataStore[details.tabId] === undefined || ( details.url.indexOf("googleusercontent.com")>-1) )
         return{cancel:false};
     var blocked =false;                               // flag for deciding if blocked or not
 
@@ -214,7 +207,7 @@ function disable(icon = true) {
     blockingEnabled = false;
     // tabDataStore = [];
     // chrome.tabs.onUpdated.removeListener(CSSListener);
-    chrome.webRequest.onBeforeRequest.removeListener();
+    // chrome.webRequest.onBeforeRequest.removeListener();
     // chrome.webNavigation.onBeforeNavigate.removeListener(tabdata);
     if (icon) {
         chrome.browserAction.setIcon({
@@ -314,6 +307,9 @@ function removeWhiteList(url) {
     delete whitelistObject[url];
     localStorage.setItem("whiteListObject", JSON.stringify(whitelistObject));
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 function getCookies(url, callback) {
     var cookiesArray1 = [];
