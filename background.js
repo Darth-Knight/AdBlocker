@@ -39,15 +39,16 @@ function getUrlTextAsync(url,filename,callback){
 
 chrome.storage.local.get('privacyFilters' ,
     function(result){
-        var key = 'last_subscriptions_check';
+        var key = 'lastCheckedTime';
         var now = Date.now();
-        var delta = now - (storage_get(key) || now);
-        var delta_hours = delta / HOUR_IN_MS;
-        if(result['privacyFilters'] == undefined || delta_hours > 72){
+        var timeDifference = now - (storage_get(key) || now);
+        timeDifference = timeDifference / HOUR_IN_MS;
+
+        if(result['privacyFilters'] == undefined || timeDifference > 72){
             getUrlTextAsync('https://easylist-downloads.adblockplus.org/easyprivacy.txt','easyprivacy.txt',function(value){
                 privacyFilters = getAllParsers(value);
-                console.log(privacyFilters);
                 chrome.storage.local.set({'privacyFilters' : privacyFilters});
+                storage_set(key,now);
             });
         }
         else{
@@ -58,20 +59,20 @@ chrome.storage.local.get('privacyFilters' ,
 
 chrome.storage.local.get('adFilters' ,
     function(result){
-        var key = 'last_subscriptions_check';
+        var key = 'lastCheckedTime';
         var now = Date.now();
-        var delta = now - (storage_get(key) || now);
-        var delta_hours = delta / HOUR_IN_MS;
+        var timeDifference = now - (storage_get(key) || now);
+        timeDifference = timeDifference / HOUR_IN_MS;
 
         // Automatically update the list in 3 days
-        if(result['adFilters'] == undefined || delta_hours > 72){
+        if(result['adFilters'] == undefined || timeDifference > 72){
             getUrlTextAsync('https://easylist.to/easylist/easylist.txt','easylist.txt',function(value){
                 adFilters = getAllParsers(value);
                 for(var i = 0 ; i < defaultFilters.length ; i++){
                     adFilters.domainFilters.push(defaultFilters[i]);
                 }
-                console.log(adFilters);
-                chrome.storage.local.set({'adFilters' : adFilters});              // have to figure out a way to save it to with async call
+                chrome.storage.local.set({'adFilters' : adFilters});
+                storage_set(key,now);
             });
         }
         else{
