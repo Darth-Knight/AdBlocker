@@ -41,6 +41,22 @@ storage_set = function(key, value) {
     }
 };
 
+function createMapOfArray(map,array){
+    for(var i = 0 ;array.length !== undefined && i <array.length ; i++){
+        var key = getLocation(array[i]).hostname;
+        if(map.get(key))
+            map.set(key, map.get(key)+1);
+        else
+            map.set(key, 1);
+    }
+}
+
+var getLocation = function(href) {
+    var l = document.createElement("a");
+    l.href = href;
+    return l;
+};
+
 // ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 

@@ -1,21 +1,8 @@
-allFilters = null;
-webRTCPrivacy = null;
-flag = false;
-var map = {};
 var HOUR_IN_MS = 1000 * 60 * 60;
-var whitelist = new Set();
-var blocklistSet = new Set();
-var tempSet = new Set();
-thirdPartyFilters = [];
-selectorFilters = [];
-generalFilters = [];
 adFilters = {};
 privacyFilters = {};
-var url_array = [];
 whitelistObject = {};
-domainWhitelist = [];
 blockingEnabled = false;
-adFilters.domainFilters = {};
 var tabDataStore = {};
 
 
@@ -117,11 +104,6 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
     return "-1";
 }
 
-var getLocation = function(href) {
-    var l = document.createElement("a");
-    l.href = href;
-    return l;
-};
 
 function onBeforeRequestHandler(details) {
     // check if blocking is enabled or not
@@ -254,7 +236,7 @@ function setBadge(options){
 function updateBadge(tabId){
     var options = {};
     options.tabId = tabId;
-    options.color = "#555";
+    options.color = "#E8BC2C";
 
     var ad_count = tabDataStore[tabId].privacyArray.length + tabDataStore[tabId].adarray.length;
 
@@ -313,56 +295,40 @@ function removeWhiteList(url) {
 
 
 function getCookies(url, callback) {
-    var cookiesArray1 = [];
+    var cookiesArray = [];
     chrome.cookies.getAll({"url":url.protocol + "//" + url.hostname}, function (cookies) {
             cookies.forEach(function(cookie) {
-                cookiesArray1.push({
+                cookiesArray.push({
                     name: cookie.name,
                     domain: cookie.domain,
                     secure: cookie.secure,
                 });
             });
-            callback(cookiesArray1);
+            callback(cookiesArray);
         }
     );
-
-
 }
 
 function getCurrentTabInfo(callback){
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
 
         if(tabs.length == 0 || tabDataStore[tabs[0].id] === undefined){
-            // callback();
             return;
         }
         var tab = tabs[0];
         var tabId=tab.id;
         var adMap = new Map();
-        for(var i = 0 ;tabDataStore[tabId].adarray.length !== undefined && i <tabDataStore[tabId].adarray.length ; i++){
-            if(adMap.get(tabDataStore[tabId].adarray[i]))
-                adMap.get(tabDataStore[tabId].adarray[i]).val++;
-            else
-                adMap.set(tabDataStore[tabId].adarray[i],{val : 1});
-        }
-
         var trackerMap = new Map();
-        for(var i = 0 ;tabDataStore[tabId].privacyArray.length !== undefined &&  i <tabDataStore[tabId].privacyArray.length ; i++){
-            if(trackerMap.get(tabDataStore[tabId].privacyArray[i]))
-                trackerMap.get(tabDataStore[tabId].privacyArray[i]).val++;
-            else
-                trackerMap.set(tabDataStore[tabId].privacyArray[i],{val : 1});
-        }
+
+        createMapOfArray(adMap,tabDataStore[tabId].adarray);
+        createMapOfArray(trackerMap,tabDataStore[tabId].privacyArray);
 
         var ad_count = tabDataStore[tabId].privacyArray.length + tabDataStore[tabId].adarray.length;
         var secure_url = true;
         if(tab.url.indexOf("https://") === -1) secure_url=false;
-        var cookiesArray = [];
 
-        var url = document.createElement('a');
-        url.setAttribute('href',tab.url);
-        getCookies(url,function (cookiesArray1) {
-            cookiesArray = cookiesArray1;
+        getCookies(getLocation(tab.url),function (cookiesArray1) {
+            var cookiesArray = cookiesArray1;
 
             var total_blocked = ad_count;
             var tab_ad_array = adMap;

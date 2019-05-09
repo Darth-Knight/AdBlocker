@@ -124,8 +124,8 @@ document.addEventListener('DOMContentLoaded',function(){
 			chrome.tabs.reload();
 
 		}
-		 // window.close();
-		//refreshPopup();
+		 window.close();
+		refreshPopup();
 	});
 
 // 	document.getElementById("advanced").addEventListener("click",function(){
