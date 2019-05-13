@@ -6,6 +6,7 @@ var adress2 = [];
 var current ;
 var isPageWhiteListed ;
 var newinfo;
+var checkBlocking;
 
 var BG = chrome.extension.getBackgroundPage();
 
@@ -18,6 +19,7 @@ var getLocation = function(href) {
 BG.getCurrentTabInfo(function(info){
 	newinfo = info;
 	tab = info.tab;
+	BG.console.log(info);
 	// tab:tab,
 	// 	total_blocked:total_blocked,
 	// 	tab_ad_array : tab_ad_array,
@@ -34,8 +36,10 @@ BG.getCurrentTabInfo(function(info){
 		document.getElementById("btnListen").innerHTML = "UnPause";
 
 	// BG.deleteInsecureCookies(getLocation(tab.url));
+	var isWhite = BG.isWhiteListed(tab.url);
+	if(newinfo.whitelisted ===true){
 
-	if(isPageWhiteListed){
+		BG.console.log("Unwhitelisted");
 		document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
 	}
 
@@ -92,21 +96,21 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		// BG.console.log(newinfo);
 		var isWhite = BG.isWhiteListed(tab.url);
-		//BG.console.log("isWhite : "+isWhite);
+		BG.console.log("isWhite : "+isWhite);
 		if(isWhite){
 			//
-		document.getElementById("WhitelistThis").innerHTML = "Whitelist Site";
+		// document.getElementById("WhitelistThis").innerHTML = "Whitelist Site";
 			BG.removeWhiteList(tab.url);
 			chrome.tabs.reload();
 		}
 		else{
-		document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
+		// document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
 			BG.addWhiteList(tab.url);
 			BG.console.log("WhiteList URL "+tab.url);
 			chrome.tabs.reload();
 		}
 		window.close()
-		refreshPopup();
+		// refreshPopup();
 	});
 
 	});
@@ -116,7 +120,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		elem = document.getElementById("btnListen");
 		// BG.console.log(elem.value);
-		var checkBlocking = BG.getStatus();
+		checkBlocking = BG.getStatus();
 		// BG.console.log(checkBlocking);
 		if(checkBlocking){
 			// BG.console.log("pause start");
@@ -136,8 +140,8 @@ document.addEventListener('DOMContentLoaded',function(){
 			chrome.tabs.reload();
 
 		}
-		 window.close();
-		refreshPopup();
+		 // window.close();
+		// refreshPopup();
 	});
 
 // 	document.getElementById("advanced").addEventListener("click",function(){

@@ -5,6 +5,7 @@ whitelistObject = {};
 blockingEnabled = true;
 cookieTrackingEnabled = true;
 var tabDataStore = {};
+var isDisabled = false;
 
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -108,12 +109,11 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
 
 function onBeforeRequestHandler(details) {
     // check if blocking is enabled or not
-    if(!blockingEnabled || tabDataStore[details.tabId] === undefined || ( details.url.indexOf("googleusercontent.com")>-1) )
+    if(!blockingEnabled || tabDataStore[details.tabId] === undefined || ( details.url.indexOf("googleusercontent.com")>-1) || isDisabled )
         return{cancel:false};
     var blocked =false;                               // flag for deciding if blocked or not
 
     if(tabDataStore[details.tabId].url !== undefined && isWhiteListed(tabDataStore[details.tabId].url)  ){
-        console.log("return");
         return{cancel:false};
     }
 
@@ -189,11 +189,8 @@ function enable(icon = true) {
 // disable the ad blocker
 function disable(icon = true) {
     blockingEnabled = false;
-    // tabDataStore = [];
-    // chrome.tabs.onUpdated.removeListener(CSSListener);
-    // chrome.webRequest.onBeforeRequest.removeListener();
-    // chrome.webNavigation.onBeforeNavigate.removeListener(tabdata);
-    if (icon) {
+
+     if (icon) {
         chrome.browserAction.setIcon({
             path : "disabled.png"
         });
@@ -202,10 +199,7 @@ function disable(icon = true) {
 
 function disableCookieTracking() {
     cookieTrackingEnabled = false;
-    // tabDataStore = [];
-    // chrome.tabs.onUpdated.removeListener(CSSListener);
-    // chrome.webRequest.onBeforeRequest.removeListener();
-    // chrome.webNavigation.onBeforeNavigate.removeListener(tabdata);
+
     if (icon) {
         chrome.browserAction.setIcon({
             path : "disabled.png"
@@ -308,9 +302,10 @@ function removeWhiteList(url) {
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-function getCookies(url, callback) {
+function getCookies(url, iswhiteListed, callback) {
     var cookiesArray = [];
-    if(cookieTrackingEnabled) {
+    console.log(cookieTrackingEnabled+"       "+ iswhiteListed);
+    if(cookieTrackingEnabled && !iswhiteListed && !isDisabled) {
         chrome.cookies.getAll({"url": url.protocol + "//" + url.hostname}, function (cookies) {
                 cookies.forEach(function (cookie) {
                     cookiesArray.push({
@@ -337,6 +332,9 @@ function  deleteInsecureCookies(url ) {
     });
 }
 
+function checkForSecureUrl(){
+
+}
 function getCurrentTabInfo(callback){
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
 
@@ -354,8 +352,8 @@ function getCurrentTabInfo(callback){
         var ad_count = tabDataStore[tabId].privacyArray.length + tabDataStore[tabId].adarray.length;
         var secure_url = true;
         if(tab.url.indexOf("https://") === -1) secure_url=false;
-
-        getCookies(getLocation(tab.url),function (cookiesArray1) {
+        var iswhiteListed = isWhiteListed(tab.url);
+        getCookies(getLocation(tab.url), iswhiteListed, function (cookiesArray1) {
             var cookiesArray = cookiesArray1;
 
             var total_blocked = ad_count;
@@ -369,7 +367,7 @@ function getCurrentTabInfo(callback){
                 tab_privacy_array : tab_privacy_array,
                 secure_url : secure_url,
                 cookiesArray : cookiesArray,
-                whitelisted : isWhiteListed(tab.url),
+                whitelisted : iswhiteListed,
                 blockingStatus : blockingEnabled
             };
 
