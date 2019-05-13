@@ -2,7 +2,8 @@ var HOUR_IN_MS = 1000 * 60 * 60;
 adFilters = {};
 privacyFilters = {};
 whitelistObject = {};
-blockingEnabled = false;
+blockingEnabled = true;
+cookieTrackingEnabled = true;
 var tabDataStore = {};
 
 
@@ -199,6 +200,19 @@ function disable(icon = true) {
     }
 }
 
+function disableCookieTracking() {
+    cookieTrackingEnabled = false;
+    // tabDataStore = [];
+    // chrome.tabs.onUpdated.removeListener(CSSListener);
+    // chrome.webRequest.onBeforeRequest.removeListener();
+    // chrome.webNavigation.onBeforeNavigate.removeListener(tabdata);
+    if (icon) {
+        chrome.browserAction.setIcon({
+            path : "disabled.png"
+        });
+    }
+}
+
 function getStatus(){
     if(blockingEnabled){
         return true;
@@ -296,17 +310,31 @@ function removeWhiteList(url) {
 
 function getCookies(url, callback) {
     var cookiesArray = [];
-    chrome.cookies.getAll({"url":url.protocol + "//" + url.hostname}, function (cookies) {
-            cookies.forEach(function(cookie) {
-                cookiesArray.push({
-                    name: cookie.name,
-                    domain: cookie.domain,
-                    secure: cookie.secure,
+    if(cookieTrackingEnabled) {
+        chrome.cookies.getAll({"url": url.protocol + "//" + url.hostname}, function (cookies) {
+                cookies.forEach(function (cookie) {
+                    cookiesArray.push({
+                        name: cookie.name,
+                        domain: cookie.domain,
+                        secure: cookie.secure,
+                    });
                 });
-            });
-            callback(cookiesArray);
+                callback(cookiesArray);
+            }
+        );
+    } else {
+        callback(cookiesArray);
+    }
+}
+
+function  deleteInsecureCookies(url ) {
+    chrome.cookies.getAll({"url": url.protocol + "//" + url.hostname}, function(cookies) {
+        for(var i=0; i<cookies.length;i++) {
+            console.log(cookies[i]);
+            if(cookies[i].secure === false)
+                chrome.cookies.remove({url: "https://" + cookies[i].domain  + cookies[i].path, name: cookies[i].name});
         }
-    );
+    });
 }
 
 function getCurrentTabInfo(callback){

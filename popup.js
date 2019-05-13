@@ -9,10 +9,15 @@ var newinfo;
 
 var BG = chrome.extension.getBackgroundPage();
 
+var getLocation = function(href) {
+	var l = document.createElement("a");
+	l.href = href;
+	return l;
+};
+
 BG.getCurrentTabInfo(function(info){
 	newinfo = info;
 	tab = info.tab;
-	BG.console.log("Here");
 	// tab:tab,
 	// 	total_blocked:total_blocked,
 	// 	tab_ad_array : tab_ad_array,
@@ -24,9 +29,16 @@ BG.getCurrentTabInfo(function(info){
 	// isPageWhiteListed = info.whitelisted;
 
 	var intialBlocking = BG.getStatus();
-	BG.console.log("intialBlocking     "+intialBlocking);
+	// BG.console.log("intialBlocking     "+intialBlocking);
 	if(intialBlocking !== true)
-	document.getElementById("btnListen").innerHTML = "UnPause";
+		document.getElementById("btnListen").innerHTML = "UnPause";
+
+	// BG.deleteInsecureCookies(getLocation(tab.url));
+
+	if(isPageWhiteListed){
+		document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
+	}
+
 	//
 	// BG.console.log(info.blockingStatus);
 	//  if(info.blockingStatus){
