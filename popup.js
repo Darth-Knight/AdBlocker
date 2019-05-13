@@ -6,13 +6,20 @@ var adress2 = [];
 var current ;
 var isPageWhiteListed ;
 var newinfo;
+var checkBlocking;
 
 var BG = chrome.extension.getBackgroundPage();
+
+var getLocation = function(href) {
+	var l = document.createElement("a");
+	l.href = href;
+	return l;
+};
 
 BG.getCurrentTabInfo(function(info){
 	newinfo = info;
 	tab = info.tab;
-	BG.console.log("Here");
+	BG.console.log(info);
 	// tab:tab,
 	// 	total_blocked:total_blocked,
 	// 	tab_ad_array : tab_ad_array,
@@ -24,9 +31,18 @@ BG.getCurrentTabInfo(function(info){
 	// isPageWhiteListed = info.whitelisted;
 
 	var intialBlocking = BG.getStatus();
-	BG.console.log("intialBlocking     "+intialBlocking);
+	// BG.console.log("intialBlocking     "+intialBlocking);
 	if(intialBlocking !== true)
-	document.getElementById("btnListen").innerHTML = "UnPause";
+		document.getElementById("btnListen").innerHTML = "UnPause";
+
+	// BG.deleteInsecureCookies(getLocation(tab.url));
+	var isWhite = BG.isWhiteListed(tab.url);
+	if(newinfo.whitelisted ===true){
+
+		BG.console.log("Unwhitelisted");
+		document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
+	}
+
 	//
 	// BG.console.log(info.blockingStatus);
 	//  if(info.blockingStatus){
@@ -80,21 +96,21 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		// BG.console.log(newinfo);
 		var isWhite = BG.isWhiteListed(tab.url);
-		//BG.console.log("isWhite : "+isWhite);
+		BG.console.log("isWhite : "+isWhite);
 		if(isWhite){
 			//
-		document.getElementById("WhitelistThis").innerHTML = "Whitelist Site";
+		// document.getElementById("WhitelistThis").innerHTML = "Whitelist Site";
 			BG.removeWhiteList(tab.url);
 			chrome.tabs.reload();
 		}
 		else{
-		document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
+		// document.getElementById("WhitelistThis").innerHTML = "UnWhitelist Site";
 			BG.addWhiteList(tab.url);
 			BG.console.log("WhiteList URL "+tab.url);
 			chrome.tabs.reload();
 		}
 		window.close()
-		refreshPopup();
+		// refreshPopup();
 	});
 
 	});
@@ -104,7 +120,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		elem = document.getElementById("btnListen");
 		// BG.console.log(elem.value);
-		var checkBlocking = BG.getStatus();
+		checkBlocking = BG.getStatus();
 		// BG.console.log(checkBlocking);
 		if(checkBlocking){
 			// BG.console.log("pause start");
@@ -125,7 +141,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		}
 		 // window.close();
-		//refreshPopup();
+		// refreshPopup();
 	});
 
 // 	document.getElementById("advanced").addEventListener("click",function(){

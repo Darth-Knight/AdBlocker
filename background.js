@@ -1,22 +1,11 @@
-allFilters = null;
-webRTCPrivacy = null;
-flag = false;
-var map = {};
 var HOUR_IN_MS = 1000 * 60 * 60;
-var whitelist = new Set();
-var blocklistSet = new Set();
-var tempSet = new Set();
-thirdPartyFilters = [];
-selectorFilters = [];
-generalFilters = [];
 adFilters = {};
 privacyFilters = {};
-var url_array = [];
 whitelistObject = {};
-domainWhitelist = [];
-blockingEnabled = false;
-adFilters.domainFilters = {};
+blockingEnabled = true;
+cookieTrackingEnabled = true;
 var tabDataStore = {};
+var isDisabled = false;
 
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -39,15 +28,16 @@ function getUrlTextAsync(url,filename,callback){
 
 chrome.storage.local.get('privacyFilters' ,
     function(result){
-        var key = 'last_subscriptions_check';
+        var key = 'lastCheckedTime';
         var now = Date.now();
-        var delta = now - (storage_get(key) || now);
-        var delta_hours = delta / HOUR_IN_MS;
-        if(result['privacyFilters'] == undefined || delta_hours > 72){
+        var timeDifference = now - (storage_get(key) || now);
+        timeDifference = timeDifference / HOUR_IN_MS;
+
+        if(result['privacyFilters'] == undefined || timeDifference > 72){
             getUrlTextAsync('https://easylist-downloads.adblockplus.org/easyprivacy.txt','easyprivacy.txt',function(value){
                 privacyFilters = getAllParsers(value);
-                console.log(privacyFilters);
                 chrome.storage.local.set({'privacyFilters' : privacyFilters});
+                storage_set(key,now);
             });
         }
         else{
@@ -58,20 +48,20 @@ chrome.storage.local.get('privacyFilters' ,
 
 chrome.storage.local.get('adFilters' ,
     function(result){
-        var key = 'last_subscriptions_check';
+        var key = 'lastCheckedTime';
         var now = Date.now();
-        var delta = now - (storage_get(key) || now);
-        var delta_hours = delta / HOUR_IN_MS;
+        var timeDifference = now - (storage_get(key) || now);
+        timeDifference = timeDifference / HOUR_IN_MS;
 
         // Automatically update the list in 3 days
-        if(result['adFilters'] == undefined || delta_hours > 72){
+        if(result['adFilters'] == undefined || timeDifference > 72){
             getUrlTextAsync('https://easylist.to/easylist/easylist.txt','easylist.txt',function(value){
                 adFilters = getAllParsers(value);
                 for(var i = 0 ; i < defaultFilters.length ; i++){
                     adFilters.domainFilters.push(defaultFilters[i]);
                 }
-                console.log(adFilters);
-                chrome.storage.local.set({'adFilters' : adFilters});              // have to figure out a way to save it to with async call
+                chrome.storage.local.set({'adFilters' : adFilters});
+                storage_set(key,now);
             });
         }
         else{
@@ -88,9 +78,6 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
     for(var i = 0 ; filters.generalFilters!== undefined && i < filters.generalFilters.length ; i++){
         var temp = filters.generalFilters[i];
         if(urlDomain.indexOf(temp) > -1){
-            if(thirdPartytracker)              console.log("Adblocker      "+urlDomain +"      "+ temp);
-            else                          console.log("privacyblocker   "+urlDomain +"      "+ temp);
-
             return temp;
         }
     }
@@ -98,8 +85,6 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
     for(var i = 0 ;filters.domainFilters !== undefined && i < filters.domainFilters.length ; i++){
         var temp = filters.domainFilters[i];
         if(urlDomain.indexOf(temp) > -1){
-            if(thirdPartytracker)              console.log("Adblocker      "+urlDomain +"      "+ temp);
-            else                          console.log("privacyblocker   "+urlDomain +"      "+ temp);
             return temp;
         }
     }
@@ -109,12 +94,10 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
         var temp = filters.thirdPartyFilters[i];
         if(thirdPartytracker){
             if(urlDomain.indexOf(temp) > -1 ){
-                console.log("Adblocker      "+urlDomain +"      "+ temp);
                 return temp;
             }
         }else{
             if(urlDomain.indexOf(temp) > -1 && getLocation(urlDomain).hostname == temp){
-                console.log("privacyblocker   "+urlDomain +"      "+ temp);
                 return temp;
             }
         }
@@ -123,20 +106,14 @@ function checkForBlocking(urlDomain, filters, thirdPartytracker){
     return "-1";
 }
 
-var getLocation = function(href) {
-    var l = document.createElement("a");
-    l.href = href;
-    return l;
-};
 
 function onBeforeRequestHandler(details) {
     // check if blocking is enabled or not
-    if(!blockingEnabled || tabDataStore[details.tabId] === undefined)
+    if(!blockingEnabled || tabDataStore[details.tabId] === undefined || ( details.url.indexOf("googleusercontent.com")>-1) || isDisabled )
         return{cancel:false};
     var blocked =false;                               // flag for deciding if blocked or not
 
     if(tabDataStore[details.tabId].url !== undefined && isWhiteListed(tabDataStore[details.tabId].url)  ){
-        console.log("return");
         return{cancel:false};
     }
 
@@ -212,10 +189,17 @@ function enable(icon = true) {
 // disable the ad blocker
 function disable(icon = true) {
     blockingEnabled = false;
-    // tabDataStore = [];
-    // chrome.tabs.onUpdated.removeListener(CSSListener);
-    chrome.webRequest.onBeforeRequest.removeListener();
-    // chrome.webNavigation.onBeforeNavigate.removeListener(tabdata);
+
+     if (icon) {
+        chrome.browserAction.setIcon({
+            path : "disabled.png"
+        });
+    }
+}
+
+function disableCookieTracking() {
+    cookieTrackingEnabled = false;
+
     if (icon) {
         chrome.browserAction.setIcon({
             path : "disabled.png"
@@ -260,7 +244,7 @@ function setBadge(options){
 function updateBadge(tabId){
     var options = {};
     options.tabId = tabId;
-    options.color = "#555";
+    options.color = "#E8BC2C";
 
     var ad_count = tabDataStore[tabId].privacyArray.length + tabDataStore[tabId].adarray.length;
 
@@ -315,57 +299,62 @@ function removeWhiteList(url) {
     localStorage.setItem("whiteListObject", JSON.stringify(whitelistObject));
 }
 
-function getCookies(url, callback) {
-    var cookiesArray1 = [];
-    chrome.cookies.getAll({"url":url.protocol + "//" + url.hostname}, function (cookies) {
-            cookies.forEach(function(cookie) {
-                cookiesArray1.push({
-                    name: cookie.name,
-                    domain: cookie.domain,
-                    secure: cookie.secure,
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+function getCookies(url, iswhiteListed, callback) {
+    var cookiesArray = [];
+    console.log(cookieTrackingEnabled+"       "+ iswhiteListed);
+    if(cookieTrackingEnabled && !iswhiteListed && !isDisabled) {
+        chrome.cookies.getAll({"url": url.protocol + "//" + url.hostname}, function (cookies) {
+                cookies.forEach(function (cookie) {
+                    cookiesArray.push({
+                        name: cookie.name,
+                        domain: cookie.domain,
+                        secure: cookie.secure,
+                    });
                 });
-            });
-            callback(cookiesArray1);
-        }
-    );
-
-
+                callback(cookiesArray);
+            }
+        );
+    } else {
+        callback(cookiesArray);
+    }
 }
 
+function  deleteInsecureCookies(url ) {
+    chrome.cookies.getAll({"url": url.protocol + "//" + url.hostname}, function(cookies) {
+        for(var i=0; i<cookies.length;i++) {
+            console.log(cookies[i]);
+            if(cookies[i].secure === false)
+                chrome.cookies.remove({url: "https://" + cookies[i].domain  + cookies[i].path, name: cookies[i].name});
+        }
+    });
+}
+
+function checkForSecureUrl(){
+
+}
 function getCurrentTabInfo(callback){
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
 
         if(tabs.length == 0 || tabDataStore[tabs[0].id] === undefined){
-            // callback();
             return;
         }
         var tab = tabs[0];
         var tabId=tab.id;
         var adMap = new Map();
-        for(var i = 0 ;tabDataStore[tabId].adarray.length !== undefined && i <tabDataStore[tabId].adarray.length ; i++){
-            if(adMap.get(tabDataStore[tabId].adarray[i]))
-                adMap.get(tabDataStore[tabId].adarray[i]).val++;
-            else
-                adMap.set(tabDataStore[tabId].adarray[i],{val : 1});
-        }
-
         var trackerMap = new Map();
-        for(var i = 0 ;tabDataStore[tabId].privacyArray.length !== undefined &&  i <tabDataStore[tabId].privacyArray.length ; i++){
-            if(trackerMap.get(tabDataStore[tabId].privacyArray[i]))
-                trackerMap.get(tabDataStore[tabId].privacyArray[i]).val++;
-            else
-                trackerMap.set(tabDataStore[tabId].privacyArray[i],{val : 1});
-        }
+
+        createMapOfArray(adMap,tabDataStore[tabId].adarray);
+        createMapOfArray(trackerMap,tabDataStore[tabId].privacyArray);
 
         var ad_count = tabDataStore[tabId].privacyArray.length + tabDataStore[tabId].adarray.length;
         var secure_url = true;
         if(tab.url.indexOf("https://") === -1) secure_url=false;
-        var cookiesArray = [];
-
-        var url = document.createElement('a');
-        url.setAttribute('href',tab.url);
-        getCookies(url,function (cookiesArray1) {
-            cookiesArray = cookiesArray1;
+        var iswhiteListed = isWhiteListed(tab.url);
+        getCookies(getLocation(tab.url), iswhiteListed, function (cookiesArray1) {
+            var cookiesArray = cookiesArray1;
 
             var total_blocked = ad_count;
             var tab_ad_array = adMap;
@@ -378,7 +367,7 @@ function getCurrentTabInfo(callback){
                 tab_privacy_array : tab_privacy_array,
                 secure_url : secure_url,
                 cookiesArray : cookiesArray,
-                whitelisted : isWhiteListed(tab.url),
+                whitelisted : iswhiteListed,
                 blockingStatus : blockingEnabled
             };
 
